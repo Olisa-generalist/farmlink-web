@@ -45,7 +45,7 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-logo">FarmLink</div>
+      <div className="auth-logo">Naagora</div>
       <p className="auth-tagline">Nigeria's farm-to-buyer marketplace</p>
 
       {/* Google sign-in */}

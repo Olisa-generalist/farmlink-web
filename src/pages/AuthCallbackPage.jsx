@@ -49,7 +49,7 @@ export default function AuthCallbackPage() {
           await supabase.from('wallets').upsert({ user_id: user.id, balance: 0 })
         }
 
-        toast.success('Welcome to FarmLink!')
+        toast.success('Welcome to Naagora!')
       } else {
         toast.success('Welcome back!')
       }

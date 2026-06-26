@@ -56,7 +56,7 @@ export default function HomePage() {
     <div className="page">
       <div className="topbar">
         <div style={{ flex: 1 }}>
-          <div className="topbar-logo">FarmLink</div>
+          <div className="topbar-logo">Naagora</div>
           <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>
             Good day, {firstName}
           </p>
