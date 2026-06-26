@@ -55,7 +55,7 @@ export default function RegisterPage() {
       await supabase.from('wallets').upsert({ user_id: data.user.id, balance: 0 })
     }
 
-    toast.success('Account created! Welcome to FarmLink.')
+    toast.success('Account created! Welcome to Naagora.')
     navigate('/')
     setLoading(false)
   }
@@ -82,7 +82,7 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-logo">FarmLink</div>
+      <div className="auth-logo">Naagora</div>
       <p className="auth-tagline">Create your account</p>
 
       {/* Role selection — shown for both Google and email signup */}
@@ -119,7 +119,7 @@ export default function RegisterPage() {
         <div className="input-group">
           <label>Full name</label>
           <input
-            placeholder="Olisa Nnadi"
+            placeholder="Your full name"
             value={form.name}
             onChange={set('name')}
             required
