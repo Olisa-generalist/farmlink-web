@@ -14,6 +14,7 @@ import FarmerDashboardPage from './pages/FarmerDashboardPage'
 import AddProductPage from './pages/AddProductPage'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
 import AddServicePage from './pages/AddServicePage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import BottomNav from './components/BottomNav'
 
 function ProtectedRoute({ children }) {
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Shared */}
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
