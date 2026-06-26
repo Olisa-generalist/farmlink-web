@@ -2,26 +2,30 @@
 import { Link, useLocation } from 'react-router-dom'
 
 const BUYER_TABS = [
-  { to: '/',        icon: HomeIcon,    label: 'Browse' },
-  { to: '/orders',  icon: BagIcon,     label: 'Orders' },
-  { to: '/profile', icon: PersonIcon,  label: 'Profile' },
+  { to: '/',        Icon: HomeIcon,   label: 'Browse' },
+  { to: '/orders',  Icon: BagIcon,    label: 'Orders' },
+  { to: '/profile', Icon: PersonIcon, label: 'Profile' },
 ]
 
 const FARMER_TABS = [
-  { to: '/dashboard',   icon: ChartIcon,  label: 'Dashboard' },
-  { to: '/',            icon: HomeIcon,   label: 'Marketplace' },
-  { to: '/add-product', icon: PlusIcon,   label: 'Add product' },
-  { to: '/profile',     icon: PersonIcon, label: 'Profile' },
+  { to: '/dashboard',   Icon: ChartIcon,  label: 'Dashboard' },
+  { to: '/',            Icon: HomeIcon,   label: 'Marketplace' },
+  { to: '/add-product', Icon: PlusIcon,   label: 'Add product' },
+  { to: '/profile',     Icon: PersonIcon, label: 'Profile' },
 ]
 
+// Logistics provider gets their own tab set —
+// same structure as farmer but "Add service" instead of "Add product"
 const PROVIDER_TABS = [
-  { to: '/dashboard',  icon: ChartIcon,  label: 'Dashboard' },
-  { to: '/',           icon: HomeIcon,   label: 'Marketplace' },
-  { to: '/profile',    icon: PersonIcon, label: 'Profile' },
+  { to: '/dashboard',   Icon: ChartIcon,  label: 'Dashboard' },
+  { to: '/',            Icon: HomeIcon,   label: 'Marketplace' },
+  { to: '/add-service', Icon: TruckIcon,  label: 'Add service' },
+  { to: '/profile',     Icon: PersonIcon, label: 'Profile' },
 ]
 
 export default function BottomNav({ role }) {
   const { pathname } = useLocation()
+
   const tabs = role === 'farmer'
     ? FARMER_TABS
     : role === 'provider'
@@ -37,7 +41,7 @@ export default function BottomNav({ role }) {
           className={`bottom-nav-item ${pathname === tab.to ? 'active' : ''}`}
           aria-current={pathname === tab.to ? 'page' : undefined}
         >
-          <tab.icon />
+          <tab.Icon />
           {tab.label}
         </Link>
       ))}
@@ -50,3 +54,4 @@ function BagIcon()    { return <svg viewBox="0 0 24 24" fill="none" stroke="curr
 function PersonIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> }
 function ChartIcon()  { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> }
 function PlusIcon()   { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> }
+function TruckIcon()  { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> }
