@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo192.png'],
       manifest: {
-        name: 'FarmLink',
-        short_name: 'FarmLink',
+        name: 'Naagora',
+        short_name: 'Naagora',
         description: 'Nigeria\'s agricultural escrow marketplace',
         theme_color: '#0F6E56',
         background_color: '#ffffff',
