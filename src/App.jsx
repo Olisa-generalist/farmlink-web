@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './lib/AuthContext'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import HomePage from './pages/HomePage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import OrdersPage from './pages/OrdersPage'
@@ -14,8 +15,8 @@ import FarmerDashboardPage from './pages/FarmerDashboardPage'
 import AddProductPage from './pages/AddProductPage'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
 import AddServicePage from './pages/AddServicePage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
 import BottomNav from './components/BottomNav'
+import AiChat from './components/AiChat'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -44,28 +45,28 @@ function AppRoutes() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Shared */}
+        {/* Shared protected */}
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/product/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-        {/* Farmer routes */}
+        {/* Farmer + provider share /dashboard — renders correct one by role */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            {profile?.role === 'provider'
-              ? <ProviderDashboardPage />
-              : <FarmerDashboardPage />}
+            {profile?.role === 'provider' ? <ProviderDashboardPage /> : <FarmerDashboardPage />}
           </ProtectedRoute>
         } />
         <Route path="/add-product" element={<ProtectedRoute><AddProductPage /></ProtectedRoute>} />
-
-        {/* Logistics provider routes */}
         <Route path="/add-service" element={<ProtectedRoute><AddServicePage /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {/* AI chat bubble — shows on every screen when logged in */}
+      {user && <AiChat />}
+
+      {/* Bottom nav — shows on every screen when logged in */}
       {user && <BottomNav role={profile?.role} />}
     </>
   )
