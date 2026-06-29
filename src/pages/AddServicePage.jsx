@@ -46,6 +46,39 @@ const STATES = [
   'Yobe','Zamfara'
 ]
 
+
+// Adds a NAAGORA watermark to vehicle photos before uploading
+async function addWatermark(file) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      const text = 'NAAGORA'
+      const fontSize = Math.max(24, img.width * 0.06)
+      ctx.font = `bold ${fontSize}px Arial`
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)'
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'
+      ctx.lineWidth = 2
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.save()
+      ctx.translate(img.width / 2, img.height / 2)
+      ctx.rotate(-Math.PI / 6)
+      ctx.strokeText(text, 0, 0)
+      ctx.fillText(text, 0, 0)
+      ctx.restore()
+      URL.revokeObjectURL(url)
+      canvas.toBlob(resolve, file.type || 'image/jpeg', 0.92)
+    }
+    img.src = url
+  })
+}
+
 export default function AddServicePage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -73,12 +106,18 @@ export default function AddServicePage() {
     if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5MB'); return }
     if (vehiclePhotos.length >= 3) { toast.error('Maximum 3 vehicle photos'); return }
     setUploadingVehiclePhoto(true)
-    const fileName = `vehicles/${user.id}/${Date.now()}-${file.name}`
-    const { error } = await supabase.storage.from('product-photos').upload(fileName, file)
-    if (error) { toast.error('Upload failed. Try again.'); setUploadingVehiclePhoto(false); return }
-    const { data: urlData } = supabase.storage.from('product-photos').getPublicUrl(fileName)
-    setVehiclePhotos(prev => [...prev, { url: urlData.publicUrl, path: fileName }])
-    toast.success('Vehicle photo added!')
+    toast('Adding watermark...', { icon: '🔒' })
+    try {
+      const watermarked = await addWatermark(file)
+      const fileName = `vehicles/${user.id}/${Date.now()}-${file.name}`
+      const { error } = await supabase.storage.from('product-photos').upload(fileName, watermarked, { contentType: file.type || 'image/jpeg' })
+      if (error) { toast.error('Upload failed. Try again.'); setUploadingVehiclePhoto(false); return }
+      const { data: urlData } = supabase.storage.from('product-photos').getPublicUrl(fileName)
+      setVehiclePhotos(prev => [...prev, { url: urlData.publicUrl, path: fileName }])
+      toast.success('Vehicle photo added with watermark!')
+    } catch (err) {
+      toast.error('Could not process photo. Try again.')
+    }
     setUploadingVehiclePhoto(false)
     e.target.value = ''
   }
@@ -103,10 +142,11 @@ export default function AddServicePage() {
       pickup_state: form.base_state,
       coverage_states: selectedStates.length > 0 ? selectedStates : [form.base_state],
       photos: vehiclePhotos.map(p => p.url),
-      is_available: true,
+      is_available: false,   // Hidden until admin approves
+      is_verified: false,    // Admin must approve
     })
     if (error) { toast.error('Could not save service. Try again.'); setLoading(false); return }
-    toast.success('Service listed! Buyers and farmers can now hire you.')
+    toast.success('Service submitted for review! We will notify you once it is approved and goes live.')
     navigate('/dashboard')
   }
 
@@ -225,7 +265,7 @@ export default function AddServicePage() {
           </div>
 
           <button className="btn btn-primary btn-full" disabled={loading || vehiclePhotos.length < 1}>
-            {loading ? 'Listing service...' : vehiclePhotos.length < 1 ? 'Add a vehicle photo to continue' : 'List service for hire'}
+            {loading ? 'Submitting for review...' : vehiclePhotos.length < 1 ? 'Add a vehicle photo to continue' : 'Submit service for admin review'}
           </button>
         </form>
       </div>
