@@ -77,18 +77,7 @@ export default function ProductDetailPage() {
             <span style={{ fontSize: 72 }}>{emoji}</span>
           )}
 
-          {/* Watermark overlay */}
-          {photos.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%) rotate(-30deg)',
-              color: 'rgba(255,255,255,0.35)', fontSize: 22,
-              fontWeight: 700, letterSpacing: 2, whiteSpace: 'nowrap',
-              pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.3)'
-            }}>
-              NAAGORA
-            </div>
-          )}
+          {/* Watermark already baked into image during upload — no overlay needed */}
 
           {/* Photo dots */}
           {photos.length > 1 && (
