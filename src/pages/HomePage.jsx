@@ -74,7 +74,7 @@ export default function HomePage() {
         <div style={{ flex: 1 }}>
           <div className="topbar-logo">Naagora</div>
           <p style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>
-            {isFarmer ? `Your marketplace, ${firstName}` : isProvider ? `Find jobs, ${firstName}` : `Good day, ${firstName}`}
+            {`Good day, ${firstName}`}
           </p>
         </div>
         <Link to="/profile" style={{ color: 'var(--text-2)', textDecoration: 'none', fontSize: 22 }}>

@@ -10,41 +10,25 @@ const ROLES = [
   { id: 'provider', icon: '🚚', title: 'Logistics', desc: 'Offer delivery services' },
 ]
 
-// Rules:
-// - farmer + buyer = allowed (same email, different roles not possible in one account)
-// - provider + buyer = allowed
-// - farmer + provider = NOT allowed (conflict of interest, separate businesses)
-// Each account has ONE role. A farmer who wants to buy uses the same account (farmers
-// can browse the marketplace). A farmer wanting logistics must use a different email.
-
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [emailSent, setEmailSent] = useState(false) // shows confirmation screen
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'buyer' })
 
-  function set(field) {
-    return e => setForm(f => ({ ...f, [field]: e.target.value }))
-  }
+  function set(field) { return e => setForm(f => ({ ...f, [field]: e.target.value })) }
 
   async function checkEmailRoleConflict(email, intendedRole) {
-    // Only check conflict between farmer and provider
-    if (intendedRole === 'buyer') return null // buyers never conflict
-
+    if (intendedRole === 'buyer') return null
     const conflictRole = intendedRole === 'farmer' ? 'provider' : 'farmer'
-
     const { data } = await supabase
-      .from('users')
-      .select('role')
-      .eq('email', email)
-      .eq('role', conflictRole)
-      .single()
-
+      .from('users').select('role').eq('email', email).eq('role', conflictRole).single()
     if (data) {
       return intendedRole === 'farmer'
-        ? 'This email is already registered as a Logistics provider. Farmers and logistics providers must use separate email addresses on Naagora.'
-        : 'This email is already registered as a Farmer. Farmers and logistics providers must use separate email addresses on Naagora.'
+        ? 'This email is already registered as a Logistics provider. Farmers and logistics providers must use separate email addresses.'
+        : 'This email is already registered as a Farmer. Farmers and logistics providers must use separate email addresses.'
     }
     return null
   }
@@ -53,34 +37,45 @@ export default function RegisterPage() {
     e.preventDefault()
     if (!form.name || !form.email || !form.password || !form.role) return
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
-
     setLoading(true)
 
-    // Check role conflict before creating account
     const conflict = await checkEmailRoleConflict(form.email, form.role)
     if (conflict) { toast.error(conflict); setLoading(false); return }
 
+    // Store name and role in Supabase user metadata so we can
+    // retrieve them when the user confirms their email and lands back
     const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { full_name: form.name, role: form.role } }
+      options: {
+        data: {
+          full_name: form.name,
+          role: form.role,
+          pending_email: form.email,
+        },
+        // After email confirmation, redirect back to app
+        emailRedirectTo: 'https://naagora.vercel.app/auth/callback'
+      }
     })
+
     if (error) { toast.error(error.message); setLoading(false); return }
 
-    const { error: profileError } = await supabase.from('users').upsert({
-      id: data.user.id,
-      full_name: form.name,
-      email: form.email,
-      role: form.role,
-    })
-    if (profileError) toast.error('Account created but profile save failed. Contact support.')
-
-    if (form.role === 'farmer' || form.role === 'provider') {
-      await supabase.from('wallets').upsert({ user_id: data.user.id, balance: 0 })
+    // Pre-save the profile row now using the user ID
+    // Even before confirmation, we save it so the role isn't lost
+    if (data?.user?.id) {
+      await supabase.from('users').upsert({
+        id: data.user.id,
+        full_name: form.name,
+        email: form.email,
+        role: form.role,
+      })
+      if (form.role === 'farmer' || form.role === 'provider') {
+        await supabase.from('wallets').upsert({ user_id: data.user.id, balance: 0 })
+      }
     }
 
-    toast.success('Account created! Welcome to Naagora.')
-    navigate('/')
+    // Show confirmation screen instead of navigating away
+    setEmailSent(true)
     setLoading(false)
   }
 
@@ -94,6 +89,47 @@ export default function RegisterPage() {
     if (error) { toast.error('Google sign-up failed. Try again.'); setGoogleLoading(false) }
   }
 
+  // ── Email sent confirmation screen ──
+  if (emailSent) {
+    return (
+      <div className="auth-page" style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+        <div className="auth-logo">Check your email</div>
+        <p style={{ color: 'var(--text-2)', marginBottom: 24, lineHeight: 1.7, fontSize: 14 }}>
+          We sent a confirmation link to <strong>{form.email}</strong>.
+          Click the link in that email to activate your Naagora account.
+        </p>
+        <div style={{
+          background: 'var(--surface-2)', borderRadius: 10,
+          padding: '12px 16px', marginBottom: 24,
+          fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, textAlign: 'left'
+        }}>
+          <strong>Didn't get the email?</strong><br />
+          Check your spam/junk folder. It may take a few minutes to arrive.
+        </div>
+        <button
+          className="btn btn-full"
+          onClick={async () => {
+            const { error } = await supabase.auth.resend({
+              type: 'signup', email: form.email,
+              options: { emailRedirectTo: 'https://naagora.vercel.app/auth/callback' }
+            })
+            if (error) toast.error(error.message)
+            else toast.success('Confirmation email resent!')
+          }}
+        >
+          Resend confirmation email
+        </button>
+        <div style={{ marginTop: 12 }}>
+          <Link to="/login" style={{ fontSize: 13, color: 'var(--green)' }}>
+            Already confirmed? Sign in →
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Main registration form ──
   return (
     <div className="auth-page">
       <div className="auth-logo">Naagora</div>
@@ -102,11 +138,9 @@ export default function RegisterPage() {
       <div className="section-label" style={{ marginTop: 0, marginBottom: 10 }}>I want to</div>
       <div className="role-cards" style={{ marginBottom: 16 }}>
         {ROLES.map(r => (
-          <div
-            key={r.id}
+          <div key={r.id}
             className={`role-card ${form.role === r.id ? 'selected' : ''}`}
-            onClick={() => setForm(f => ({ ...f, role: r.id }))}
-          >
+            onClick={() => setForm(f => ({ ...f, role: r.id }))}>
             <div className="role-card-icon">{r.icon}</div>
             <div className="role-card-title">{r.title}</div>
             <div className="role-card-desc">{r.desc}</div>
@@ -114,24 +148,16 @@ export default function RegisterPage() {
         ))}
       </div>
 
-      {/* Role conflict notice */}
       {(form.role === 'farmer' || form.role === 'provider') && (
-        <div style={{
-          background: '#FAEEDA', borderRadius: 8, padding: '10px 12px',
-          fontSize: 12, color: '#633806', marginBottom: 14, lineHeight: 1.6
-        }}>
+        <div style={{ background: '#FAEEDA', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#633806', marginBottom: 14, lineHeight: 1.6 }}>
           💡 {form.role === 'farmer'
-            ? 'Farmers can also browse and buy on Naagora using this same account. If you also run a logistics business, you must register it with a different email address.'
-            : 'Logistics providers can also browse and buy on Naagora using this same account. If you also run a farm, you must register it with a different email address.'}
+            ? 'Farmers can also browse and buy on Naagora with this account. If you also run a logistics business, register it with a different email.'
+            : 'Logistics providers can also browse and buy on Naagora with this account. If you also farm, register that with a different email.'}
         </div>
       )}
 
-      <button
-        className="btn btn-full"
-        onClick={handleGoogleSignup}
-        disabled={googleLoading}
-        style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
-      >
+      <button className="btn btn-full" onClick={handleGoogleSignup} disabled={googleLoading}
+        style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
         <GoogleIcon />
         {googleLoading ? 'Redirecting...' : 'Continue with Google'}
       </button>
@@ -154,8 +180,7 @@ export default function RegisterPage() {
               type={showPassword ? 'text' : 'password'}
               placeholder="At least 6 characters"
               value={form.password} onChange={set('password')}
-              style={{ paddingRight: 44 }} required
-            />
+              style={{ paddingRight: 44 }} required />
             <button type="button" onClick={() => setShowPassword(v => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 0, display: 'flex', alignItems: 'center' }}>

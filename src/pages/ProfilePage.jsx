@@ -5,12 +5,6 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
 
-const ROLE_LABELS = {
-  buyer: { label: 'Buyer', icon: '🛒', color: '#185FA5', bg: '#E6F1FB' },
-  farmer: { label: 'Farmer', icon: '🌾', color: '#085041', bg: '#E1F5EE' },
-  provider: { label: 'Logistics Provider', icon: '🚚', color: '#633806', bg: '#FAEEDA' },
-}
-
 export default function ProfilePage() {
   const { profile, signOut, refreshProfile } = useAuth()
   const [editing, setEditing] = useState(false)
@@ -18,23 +12,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false)
 
   const role = profile?.role || 'buyer'
-  const roleInfo = ROLE_LABELS[role] || ROLE_LABELS.buyer
 
   async function handleSaveName(e) {
     e.preventDefault()
     if (!name.trim()) return
     setLoading(true)
     const { error } = await supabase
-      .from('users')
-      .update({ full_name: name.trim() })
-      .eq('id', profile.id)
-    if (error) {
-      toast.error('Could not update name')
-    } else {
-      toast.success('Name updated!')
-      await refreshProfile()
-      setEditing(false)
-    }
+      .from('users').update({ full_name: name.trim() }).eq('id', profile.id)
+    if (error) { toast.error('Could not update name') }
+    else { toast.success('Name updated!'); await refreshProfile(); setEditing(false) }
     setLoading(false)
   }
 
@@ -44,34 +30,63 @@ export default function ProfilePage() {
 
       <div className="page-content" style={{ paddingTop: 20 }}>
 
-        {/* Avatar + role */}
+        {/* Avatar section — shows role-specific icons */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: roleInfo.bg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, marginBottom: 10
-          }}>
-            {roleInfo.icon}
+
+          {/* Farmers show farmer + buyer icons */}
+          {role === 'farmer' && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E1F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌾</div>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🛒</div>
+            </div>
+          )}
+
+          {/* Providers show truck + buyer icons */}
+          {role === 'provider' && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FAEEDA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🚚</div>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🛒</div>
+            </div>
+          )}
+
+          {/* Buyers show single buyer icon */}
+          {role === 'buyer' && (
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, marginBottom: 10 }}>
+              🛒
+            </div>
+          )}
+
+          {/* Admin */}
+          {role === 'admin' && (
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#F1EFE8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, marginBottom: 10 }}>
+              🛡️
+            </div>
+          )}
+
+          <div style={{ fontWeight: 600, fontSize: 17, marginBottom: 6 }}>
+            {profile?.full_name || 'Loading...'}
           </div>
-          <div style={{ fontWeight: 600, fontSize: 17, marginBottom: 4 }}>
-            {profile?.full_name}
+
+          {/* Role badges */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {role === 'farmer' && <>
+              <span style={{ background: '#E1F5EE', color: '#085041', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🌾 Farmer</span>
+              <span style={{ background: '#E6F1FB', color: '#0C447C', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🛒 Buyer</span>
+            </>}
+            {role === 'provider' && <>
+              <span style={{ background: '#FAEEDA', color: '#633806', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🚚 Logistics Provider</span>
+              <span style={{ background: '#E6F1FB', color: '#0C447C', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🛒 Buyer</span>
+            </>}
+            {role === 'buyer' && <span style={{ background: '#E6F1FB', color: '#0C447C', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🛒 Buyer</span>}
+            {role === 'admin' && <span style={{ background: '#F1EFE8', color: '#444441', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20 }}>🛡️ Admin</span>}
           </div>
-          <span style={{
-            background: roleInfo.bg, color: roleInfo.color,
-            fontSize: 12, fontWeight: 500,
-            padding: '3px 10px', borderRadius: 20
-          }}>
-            {roleInfo.label}
-          </span>
         </div>
 
-        {/* Edit name */}
+        {/* Account details */}
         <div className="card" style={{ marginBottom: 12 }}>
           <div className="card-body">
-            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-              Account details
-            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Account details</div>
+
             {editing ? (
               <form onSubmit={handleSaveName}>
                 <div className="input-group">
@@ -79,123 +94,103 @@ export default function ProfilePage() {
                   <input value={name} onChange={e => setName(e.target.value)} autoFocus required />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
-                    {loading ? 'Saving...' : 'Save'}
-                  </button>
-                  <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setEditing(false)}>
-                    Cancel
-                  </button>
+                  <button className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
+                  <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setEditing(false)}>Cancel</button>
                 </div>
               </form>
             ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 10, borderBottom: '0.5px solid var(--border)' }}>
                 <div>
                   <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Full name</div>
                   <div style={{ fontSize: 14, marginTop: 2 }}>{profile?.full_name}</div>
                 </div>
-                <button className="btn btn-sm" onClick={() => { setName(profile?.full_name || ''); setEditing(true) }}>
-                  Edit
-                </button>
+                <button className="btn btn-sm" onClick={() => { setName(profile?.full_name || ''); setEditing(true) }}>Edit</button>
               </div>
             )}
 
-            <hr className="divider" />
-            <div>
+            <div style={{ paddingTop: 10 }}>
               <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Email</div>
               <div style={{ fontSize: 14, marginTop: 2 }}>{profile?.email || 'Not set'}</div>
-            </div>
-
-            <hr className="divider" />
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Account type</div>
-              <div style={{ fontSize: 14, marginTop: 2 }}>{roleInfo.label}</div>
             </div>
           </div>
         </div>
 
-        {/* Role-specific quick links */}
+        {/* Farmer quick links */}
         {role === 'farmer' && (
           <div className="card" style={{ marginBottom: 12 }}>
             <div className="card-body">
-              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                Farmer tools
-              </div>
-              <Link to="/dashboard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 14 }}>📦 My products</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
-              <Link to="/add-product" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 14 }}>➕ Add new product</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
-              <Link to="/dashboard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0' }}>
-                <span style={{ fontSize: 14 }}>💰 Earnings & wallet</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Farmer tools</div>
+              {[
+                { to: '/dashboard', icon: '📊', label: 'My dashboard & orders' },
+                { to: '/add-product', icon: '➕', label: 'Add new product' },
+                { to: '/', icon: '🛒', label: 'Browse marketplace as buyer' },
+              ].map((item, i, arr) => (
+                <Link key={item.to + item.label} to={item.to} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '9px 0', borderBottom: i < arr.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <span style={{ fontSize: 14 }}>{item.icon} {item.label}</span>
+                  <span style={{ color: 'var(--text-3)' }}>→</span>
+                </Link>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Logistics provider quick links */}
         {role === 'provider' && (
           <div className="card" style={{ marginBottom: 12 }}>
             <div className="card-body">
-              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                Logistics tools
-              </div>
-              <Link to="/dashboard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 14 }}>🚚 My services</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
-              <Link to="/add-service" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 14 }}>➕ Add new service</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
-              <Link to="/dashboard" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0' }}>
-                <span style={{ fontSize: 14 }}>💰 Earnings & wallet</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Logistics tools</div>
+              {[
+                { to: '/dashboard', icon: '📊', label: 'My dashboard & jobs' },
+                { to: '/add-service', icon: '➕', label: 'Add new service' },
+                { to: '/', icon: '🛒', label: 'Browse marketplace as buyer' },
+              ].map((item, i, arr) => (
+                <Link key={item.to + item.label} to={item.to} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '9px 0', borderBottom: i < arr.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <span style={{ fontSize: 14 }}>{item.icon} {item.label}</span>
+                  <span style={{ color: 'var(--text-3)' }}>→</span>
+                </Link>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Buyer quick links */}
         {role === 'buyer' && (
           <div className="card" style={{ marginBottom: 12 }}>
             <div className="card-body">
-              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-                Buyer tools
-              </div>
-              <Link to="/orders" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}>
-                <span style={{ fontSize: 14 }}>📦 My orders</span>
-                <span style={{ color: 'var(--text-3)' }}>→</span>
-              </Link>
-              <Link to="/" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '8px 0' }}>
-                <span style={{ fontSize: 14 }}>🛒 Browse marketplace</span>
+              <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Buyer tools</div>
+              {[
+                { to: '/orders', icon: '📦', label: 'My orders' },
+                { to: '/', icon: '🛒', label: 'Browse marketplace' },
+              ].map((item, i, arr) => (
+                <Link key={item.to} to={item.to} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '9px 0', borderBottom: i < arr.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
+                  <span style={{ fontSize: 14 }}>{item.icon} {item.label}</span>
+                  <span style={{ color: 'var(--text-3)' }}>→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Admin panel link */}
+        {role === 'admin' && (
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div className="card-body">
+              <Link to="/admin" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '4px 0' }}>
+                <span style={{ fontSize: 14 }}>🛡️ Admin panel</span>
                 <span style={{ color: 'var(--text-3)' }}>→</span>
               </Link>
             </div>
           </div>
         )}
 
-        {/* Role notice for farmers/providers */}
+        {/* Role explanation for farmer and provider */}
         {(role === 'farmer' || role === 'provider') && (
-          <div style={{
-            background: 'var(--surface-2)', borderRadius: 10,
-            padding: '10px 14px', fontSize: 12,
-            color: 'var(--text-3)', lineHeight: 1.6, marginBottom: 12
-          }}>
-            💡 As a {roleInfo.label.toLowerCase()}, you can also browse and purchase from the marketplace using this same account.
-            {role === 'farmer'
-              ? ' If you run a logistics business, register it with a separate email.'
-              : ' If you run a farm, register it with a separate email.'}
+          <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6, marginBottom: 12 }}>
+            💡 Your account has two roles — {role === 'farmer' ? 'Farmer and Buyer' : 'Logistics Provider and Buyer'}. You can use the marketplace to buy produce just like any buyer.
           </div>
         )}
 
-        {/* Sign out */}
-        <button
-          className="btn btn-full"
-          onClick={signOut}
-          style={{ color: 'var(--red)', borderColor: 'var(--red-light)' }}
-        >
+        <button className="btn btn-full" onClick={signOut} style={{ color: 'var(--red)', borderColor: 'var(--red-light)' }}>
           Sign out
         </button>
       </div>
