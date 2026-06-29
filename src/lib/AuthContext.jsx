@@ -1,15 +1,4 @@
 // src/lib/AuthContext.jsx
-// ─────────────────────────────────────────────
-// Wraps the whole app so any screen can ask
-// "who is logged in?" without prop-drilling.
-//
-// Usage in any component:
-//   const { user, profile, loading } = useAuth()
-//
-// FIX: added retry logic for Google OAuth users whose
-// profile row may not exist yet when the callback fires.
-// ─────────────────────────────────────────────
-
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
@@ -23,49 +12,57 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
+      if (session?.user) fetchProfile(session.user)
       else setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null)
-        if (session?.user) fetchProfile(session.user.id)
+        if (session?.user) fetchProfile(session.user)
         else { setProfile(null); setLoading(false) }
       }
     )
-
     return () => subscription.unsubscribe()
   }, [])
 
-  // Retries up to 5 times with a short delay between each attempt.
-  // This handles Google OAuth users where the profile row is being
-  // written by AuthCallbackPage at the same moment this runs —
-  // without the retry, the first fetch returns null and the user
-  // sees a buyer view even if they registered as a farmer.
-  async function fetchProfile(userId, attempt = 1) {
+  // Fetches profile from users table, falls back to auth metadata
+  // so name and role are always available even if profile row is incomplete
+  async function fetchProfile(authUser, attempt = 1) {
     const { data } = await supabase
       .from('users')
       .select('*')
-      .eq('id', userId)
+      .eq('id', authUser.id)
       .single()
 
-    if (data) {
+    if (data && data.full_name && data.role) {
+      // Profile row exists and is complete — use it
       setProfile(data)
       setLoading(false)
-    } else if (attempt < 5) {
-      // Profile not written yet — wait 600ms and try again
-      setTimeout(() => fetchProfile(userId, attempt + 1), 600)
+    } else if (attempt < 4) {
+      // Row may still be writing — retry after short delay
+      setTimeout(() => fetchProfile(authUser, attempt + 1), 600)
     } else {
-      // After 5 attempts, give up and show what we have
-      // (user will see correct view on next app open)
-      setProfile(null)
+      // After retries, build profile from auth metadata as fallback
+      // This handles cases where profile save failed but auth succeeded
+      const meta = authUser.user_metadata || {}
+      const fallbackProfile = {
+        id: authUser.id,
+        full_name: data?.full_name || meta.full_name || meta.name || authUser.email?.split('@')[0] || 'User',
+        email: authUser.email,
+        role: data?.role || meta.role || 'buyer',
+        is_verified: data?.is_verified || false,
+      }
+
+      // Try to save/fix the profile row if it was incomplete
+      await supabase.from('users').upsert(fallbackProfile)
+      setProfile(fallbackProfile)
       setLoading(false)
     }
   }
 
   async function refreshProfile() {
-    if (user) await fetchProfile(user.id)
+    if (user) await fetchProfile(user)
   }
 
   async function signOut() {
