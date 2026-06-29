@@ -15,6 +15,7 @@ import FarmerDashboardPage from './pages/FarmerDashboardPage'
 import AddProductPage from './pages/AddProductPage'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
 import AddServicePage from './pages/AddServicePage'
+import AdminPage from './pages/AdminPage'
 import BottomNav from './components/BottomNav'
 import AiChat from './components/AiChat'
 
@@ -39,19 +40,16 @@ function AppRoutes() {
   return (
     <>
       <Routes>
-        {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Shared protected */}
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/product/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
         <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-        {/* Farmer + provider share /dashboard — renders correct one by role */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             {profile?.role === 'provider' ? <ProviderDashboardPage /> : <FarmerDashboardPage />}
@@ -59,14 +57,12 @@ function AppRoutes() {
         } />
         <Route path="/add-product" element={<ProtectedRoute><AddProductPage /></ProtectedRoute>} />
         <Route path="/add-service" element={<ProtectedRoute><AddServicePage /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* AI chat bubble — shows on every screen when logged in */}
       {user && <AiChat />}
-
-      {/* Bottom nav — shows on every screen when logged in */}
       {user && <BottomNav role={profile?.role} />}
     </>
   )
@@ -76,7 +72,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+        <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
