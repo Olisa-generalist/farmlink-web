@@ -1,6 +1,7 @@
 // src/pages/ProfilePage.jsx
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
@@ -33,35 +34,23 @@ export default function ProfilePage() {
         {/* Avatar section — shows role-specific icons */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
 
-          {/* Farmers show farmer + buyer icons */}
-          {role === 'farmer' && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E1F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🌾</div>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🛒</div>
-            </div>
-          )}
+          {/* Profile photo upload — works for all roles */}
+          <ProfilePhotoUpload currentPhoto={profile?.profile_photo} />
+          <p style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4, marginBottom: 6 }}>Tap photo to update</p>
 
-          {/* Providers show truck + buyer icons */}
-          {role === 'provider' && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#FAEEDA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🚚</div>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🛒</div>
-            </div>
-          )}
-
-          {/* Buyers show single buyer icon */}
-          {role === 'buyer' && (
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, marginBottom: 10 }}>
-              🛒
-            </div>
-          )}
-
-          {/* Admin */}
-          {role === 'admin' && (
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#F1EFE8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, marginBottom: 10 }}>
-              🛡️
-            </div>
-          )}
+          {/* Role icons below photo */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 6, marginTop: 4 }}>
+            {role === 'farmer' && <>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E1F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🌾</div>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🛒</div>
+            </>}
+            {role === 'provider' && <>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#FAEEDA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🚚</div>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🛒</div>
+            </>}
+            {role === 'buyer' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#E6F1FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🛒</div>}
+            {role === 'admin' && <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#F1EFE8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🛡️</div>}
+          </div>
 
           <div style={{ fontWeight: 600, fontSize: 17, marginBottom: 6 }}>
             {profile?.full_name || 'Loading...'}

@@ -1,6 +1,7 @@
 // src/pages/RegisterPage.jsx
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { setCookie } from './AuthCallbackPage'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -82,6 +83,8 @@ export default function RegisterPage() {
   async function handleGoogleSignup() {
     setGoogleLoading(true)
     localStorage.setItem('pendingRole', form.role)
+    sessionStorage.setItem('pendingRole', form.role)
+    setCookie('naagora_pending_role', form.role, 10)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: 'https://naagora.vercel.app/auth/callback' }
