@@ -10,6 +10,13 @@ const ROLES = [
   { id: 'provider', icon: '🚚', title: 'Logistics', desc: 'Offer delivery services' },
 ]
 
+// Rules:
+// - farmer + buyer = allowed (same email, different roles not possible in one account)
+// - provider + buyer = allowed
+// - farmer + provider = NOT allowed (conflict of interest, separate businesses)
+// Each account has ONE role. A farmer who wants to buy uses the same account (farmers
+// can browse the marketplace). A farmer wanting logistics must use a different email.
+
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
@@ -21,37 +28,53 @@ export default function RegisterPage() {
     return e => setForm(f => ({ ...f, [field]: e.target.value }))
   }
 
+  async function checkEmailRoleConflict(email, intendedRole) {
+    // Only check conflict between farmer and provider
+    if (intendedRole === 'buyer') return null // buyers never conflict
+
+    const conflictRole = intendedRole === 'farmer' ? 'provider' : 'farmer'
+
+    const { data } = await supabase
+      .from('users')
+      .select('role')
+      .eq('email', email)
+      .eq('role', conflictRole)
+      .single()
+
+    if (data) {
+      return intendedRole === 'farmer'
+        ? 'This email is already registered as a Logistics provider. Farmers and logistics providers must use separate email addresses on Naagora.'
+        : 'This email is already registered as a Farmer. Farmers and logistics providers must use separate email addresses on Naagora.'
+    }
+    return null
+  }
+
   async function handleRegister(e) {
     e.preventDefault()
     if (!form.name || !form.email || !form.password || !form.role) return
-    if (form.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      return
-    }
+    if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return }
+
     setLoading(true)
 
-    // Step 1: create the Supabase auth account
+    // Check role conflict before creating account
+    const conflict = await checkEmailRoleConflict(form.email, form.role)
+    if (conflict) { toast.error(conflict); setLoading(false); return }
+
     const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: {
-        data: { full_name: form.name, role: form.role }
-      }
+      options: { data: { full_name: form.name, role: form.role } }
     })
     if (error) { toast.error(error.message); setLoading(false); return }
 
-    // Step 2: save their profile row in our users table
     const { error: profileError } = await supabase.from('users').upsert({
       id: data.user.id,
       full_name: form.name,
       email: form.email,
       role: form.role,
     })
-    if (profileError) {
-      toast.error('Account created but profile save failed. Please contact support.')
-    }
+    if (profileError) toast.error('Account created but profile save failed. Contact support.')
 
-    // Step 3: create wallet for farmers and logistics providers
     if (form.role === 'farmer' || form.role === 'provider') {
       await supabase.from('wallets').upsert({ user_id: data.user.id, balance: 0 })
     }
@@ -61,24 +84,14 @@ export default function RegisterPage() {
     setLoading(false)
   }
 
-  // Google sign-up — role gets collected after they authenticate
-  // We store it via a follow-up screen (for now, defaults to 'buyer')
   async function handleGoogleSignup() {
     setGoogleLoading(true)
-
-    // Save their chosen role to localStorage so we can use it after redirect
     localStorage.setItem('pendingRole', form.role)
-
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: 'https://naagora.vercel.app/auth/callback'
-      }
+      options: { redirectTo: 'https://naagora.vercel.app/auth/callback' }
     })
-    if (error) {
-      toast.error('Google sign-up failed. Try again.')
-      setGoogleLoading(false)
-    }
+    if (error) { toast.error('Google sign-up failed. Try again.'); setGoogleLoading(false) }
   }
 
   return (
@@ -86,8 +99,7 @@ export default function RegisterPage() {
       <div className="auth-logo">Naagora</div>
       <p className="auth-tagline">Create your account</p>
 
-      {/* Role selection — shown for both Google and email signup */}
-      <div className="section-label" style={{ marginTop: 0, marginBottom: 10 }}>I am a</div>
+      <div className="section-label" style={{ marginTop: 0, marginBottom: 10 }}>I want to</div>
       <div className="role-cards" style={{ marginBottom: 16 }}>
         {ROLES.map(r => (
           <div
@@ -102,7 +114,18 @@ export default function RegisterPage() {
         ))}
       </div>
 
-      {/* Google sign-up */}
+      {/* Role conflict notice */}
+      {(form.role === 'farmer' || form.role === 'provider') && (
+        <div style={{
+          background: '#FAEEDA', borderRadius: 8, padding: '10px 12px',
+          fontSize: 12, color: '#633806', marginBottom: 14, lineHeight: 1.6
+        }}>
+          💡 {form.role === 'farmer'
+            ? 'Farmers can also browse and buy on Naagora using this same account. If you also run a logistics business, you must register it with a different email address.'
+            : 'Logistics providers can also browse and buy on Naagora using this same account. If you also run a farm, you must register it with a different email address.'}
+        </div>
+      )}
+
       <button
         className="btn btn-full"
         onClick={handleGoogleSignup}
@@ -115,26 +138,14 @@ export default function RegisterPage() {
 
       <div className="auth-divider">or register with email</div>
 
-      {/* Email + password registration */}
       <form onSubmit={handleRegister}>
         <div className="input-group">
           <label>Full name</label>
-          <input
-            placeholder="Your full name"
-            value={form.name}
-            onChange={set('name')}
-            required
-          />
+          <input placeholder="Your full name" value={form.name} onChange={set('name')} required />
         </div>
         <div className="input-group">
           <label>Email address</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={form.email}
-            onChange={set('email')}
-            required
-          />
+          <input type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} required />
         </div>
         <div className="input-group">
           <label>Password</label>
@@ -142,40 +153,25 @@ export default function RegisterPage() {
             <input
               type={showPassword ? 'text' : 'password'}
               placeholder="At least 6 characters"
-              value={form.password}
-              onChange={set('password')}
-              style={{ paddingRight: 44 }}
-              required
+              value={form.password} onChange={set('password')}
+              style={{ paddingRight: 44 }} required
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
+            <button type="button" onClick={() => setShowPassword(v => !v)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              style={{
-                position: 'absolute', right: 12, top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-3)', padding: 0,
-                display: 'flex', alignItems: 'center'
-              }}
-            >
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: 0, display: 'flex', alignItems: 'center' }}>
               {showPassword
                 ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              }
+                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
             </button>
           </div>
         </div>
-
         <button className="btn btn-primary btn-full" disabled={loading}>
           {loading ? 'Creating account...' : 'Create account'}
         </button>
       </form>
 
       <div className="auth-divider">Already have an account?</div>
-      <Link to="/login" className="btn btn-full" style={{ textAlign: 'center' }}>
-        Sign in
-      </Link>
+      <Link to="/login" className="btn btn-full" style={{ textAlign: 'center' }}>Sign in</Link>
     </div>
   )
 }
