@@ -21,6 +21,7 @@ import AddServicePage from './pages/AddServicePage'
 import AdminPage from './pages/AdminPage'
 import BottomNav from './components/BottomNav'
 import AiChat from './components/AiChat'
+import NotificationPanel from './components/NotificationPanel'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -74,6 +75,7 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {user && <NotificationPanel />}
       {user && <AiChat />}
       {user && <BottomNav role={profile?.role} />}
     </>
