@@ -19,7 +19,6 @@ import FarmerDashboardPage from './pages/FarmerDashboardPage'
 import AddProductPage from './pages/AddProductPage'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
 import AddServicePage from './pages/AddServicePage'
-import JobDetailPage from './pages/JobDetailPage'
 import AdminPage from './pages/AdminPage'
 import BottomNav from './components/BottomNav'
 import AiChat from './components/AiChat'
@@ -71,7 +70,6 @@ function AppRoutes() {
 
         {/* Logistics */}
         <Route path="/add-service" element={<ProtectedRoute><AddServicePage /></ProtectedRoute>} />
-        <Route path="/job/:legId" element={<ProtectedRoute><JobDetailPage /></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
