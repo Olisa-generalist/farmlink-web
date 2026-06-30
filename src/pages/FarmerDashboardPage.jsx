@@ -37,15 +37,51 @@ export default function FarmerDashboardPage() {
   }
 
   async function fetchOrders() {
-    const { data } = await supabase
+    // Split into separate non-nested queries — nested joins through
+    // multiple foreign keys can silently fail. See ProviderDashboardPage
+    // for the same pattern.
+    const { data: rawLegs, error: legsError } = await supabase
       .from('order_legs')
-      .select(`id, status, leg_amount, leg_payout, quantity, created_at,
-        products ( name, unit, photos ),
-        orders ( delivery_address, delivery_state, buyer_id,
-          users!orders_buyer_id_fkey ( full_name ) )`)
-      .eq('provider_id', user.id).eq('leg_type', 'product')
-      .order('created_at', { ascending: false }).limit(20)
-    setOrders(data || [])
+      .select('*')
+      .eq('provider_id', user.id)
+      .eq('leg_type', 'product')
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (legsError) {
+      console.error('Fetch orders error:', legsError)
+      setOrders([])
+      return
+    }
+    if (!rawLegs || rawLegs.length === 0) { setOrders([]); return }
+
+    const productIds = [...new Set(rawLegs.map(l => l.product_id).filter(Boolean))]
+    const { data: products } = productIds.length
+      ? await supabase.from('products').select('id, name, unit, photos').in('id', productIds)
+      : { data: [] }
+
+    const orderIds = [...new Set(rawLegs.map(l => l.order_id).filter(Boolean))]
+    const { data: ordersData } = orderIds.length
+      ? await supabase.from('orders').select('id, delivery_address, delivery_state, buyer_id').in('id', orderIds)
+      : { data: [] }
+
+    const buyerIds = [...new Set((ordersData || []).map(o => o.buyer_id).filter(Boolean))]
+    const { data: buyers } = buyerIds.length
+      ? await supabase.from('users').select('id, full_name').in('id', buyerIds)
+      : { data: [] }
+
+    const enriched = rawLegs.map(leg => {
+      const product = products?.find(p => p.id === leg.product_id)
+      const orderRow = ordersData?.find(o => o.id === leg.order_id)
+      const buyer = buyers?.find(b => b.id === orderRow?.buyer_id)
+      return {
+        ...leg,
+        products: product || null,
+        orders: orderRow ? { ...orderRow, users: buyer || null } : null,
+      }
+    })
+
+    setOrders(enriched)
   }
 
   async function fetchProducts() {
@@ -259,7 +295,7 @@ export default function FarmerDashboardPage() {
               {orders.map(leg => {
                 const status = STATUS_LABEL[leg.status] || { label: leg.status, cls: 'badge-gray' }
                 return (
-                  <div key={leg.id} className="card">
+                  <div key={leg.id} className="card" onClick={() => navigate(`/orders/${leg.order_id}`)} style={{ cursor: 'pointer' }}>
                     <div className="card-body">
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                         <div>
@@ -275,12 +311,12 @@ export default function FarmerDashboardPage() {
                         <span style={{ fontWeight: 600, color: 'var(--green)' }}>₦{Number(leg.leg_payout).toLocaleString()}</span>
                       </div>
                       {leg.status === 'paid_held' && (
-                        <button className="btn btn-primary btn-full btn-sm" onClick={() => confirmOrder(leg.id)}>
+                        <button className="btn btn-primary btn-full btn-sm" onClick={(e) => { e.stopPropagation(); confirmOrder(leg.id) }}>
                           Confirm this order
                         </button>
                       )}
                       {leg.status === 'confirmed' && (
-                        <button className="btn btn-primary btn-full btn-sm" onClick={() => dispatchOrder(leg.id)}>
+                        <button className="btn btn-primary btn-full btn-sm" onClick={(e) => { e.stopPropagation(); dispatchOrder(leg.id) }}>
                           Mark as dispatched
                         </button>
                       )}

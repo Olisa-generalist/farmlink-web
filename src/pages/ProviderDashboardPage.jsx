@@ -1,6 +1,6 @@
 // src/pages/ProviderDashboardPage.jsx
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
@@ -8,6 +8,7 @@ import { notifyBuyerOfLegUpdate } from '../lib/notifications'
 
 export default function ProviderDashboardPage() {
   const { user, profile } = useAuth()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({ balance: 0, escrow: 0, earned: 0, completed: 0 })
   const [orders, setOrders] = useState([])
   const [services, setServices] = useState([])
@@ -277,7 +278,7 @@ export default function ProviderDashboardPage() {
               {orders.map(leg => {
                 const status = STATUS_LABEL[leg.status] || { label: leg.status, cls: 'badge-gray' }
                 return (
-                  <div key={leg.id} className="card">
+                  <div key={leg.id} className="card" onClick={() => navigate(`/orders/${leg.order_id}`)} style={{ cursor: 'pointer' }}>
                     <div className="card-body">
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                         <div>
@@ -301,10 +302,10 @@ export default function ProviderDashboardPage() {
                         <span style={{ fontWeight: 600, color: 'var(--green)' }}>₦{Number(leg.leg_payout).toLocaleString()} payout</span>
                       </div>
                       {leg.status === 'paid_held' && (
-                        <button className="btn btn-primary btn-full btn-sm" onClick={() => confirmJob(leg.id)}>Accept this job</button>
+                        <button className="btn btn-primary btn-full btn-sm" onClick={(e) => { e.stopPropagation(); confirmJob(leg.id) }}>Accept this job</button>
                       )}
                       {leg.status === 'confirmed' && (
-                        <button className="btn btn-primary btn-full btn-sm" onClick={() => startJob(leg.id)}>Start job — mark as en route</button>
+                        <button className="btn btn-primary btn-full btn-sm" onClick={(e) => { e.stopPropagation(); startJob(leg.id) }}>Start job — mark as en route</button>
                       )}
                       {leg.status === 'in_progress' && (
                         <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center', padding: '6px 0' }}>En route — waiting for buyer to confirm delivery</div>
