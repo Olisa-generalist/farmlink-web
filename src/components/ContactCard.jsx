@@ -1,34 +1,22 @@
 // src/components/ContactCard.jsx
-// ─────────────────────────────────────────────
-// Shows contact details for an order leg's other party,
-// respecting Naagora's privacy rules:
-//
-//   Viewer = Buyer    → sees Provider (name+phone+vehicle), Farmer (name+location only)
-//   Viewer = Farmer   → sees Provider (name+phone+vehicle), NOT buyer contact
-//   Viewer = Provider → sees Farmer (name+phone+address), Buyer (name+phone+address)
-//
-// This component is given a "viewerRole" and the leg/order data,
-// and decides what to render — never expose more than the rule allows.
-// ─────────────────────────────────────────────
+// Shows contact details for an order leg's other party, respecting
+// Naagora's privacy rules. Name is tappable -> opens public profile
+// (trust signals only, never phone/address there).
+
+import { Link } from 'react-router-dom'
 
 export default function ContactCard({ viewerRole, person, type, vehiclePhoto }) {
-  // type: 'provider' | 'farmer' | 'buyer'
-  // person: { full_name, phone, address, state }
-
   if (!person) return null
 
-  // Determine what fields to show based on viewer + person type
   let showPhone = false
   let showAddress = false
   let showVehicle = false
 
   if (viewerRole === 'buyer') {
     if (type === 'provider') { showPhone = true; showVehicle = true }
-    if (type === 'farmer') { /* name + location only */ }
   }
   if (viewerRole === 'farmer') {
     if (type === 'provider') { showPhone = true; showVehicle = true }
-    // farmer never sees buyer contact
   }
   if (viewerRole === 'provider') {
     if (type === 'farmer' || type === 'buyer') { showPhone = true; showAddress = true }
@@ -62,7 +50,15 @@ export default function ContactCard({ viewerRole, person, type, vehiclePhoto }) 
         )}
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 500, fontSize: 14 }}>{person.full_name}</div>
+          {/* Name — tappable, opens public trust profile */}
+          {person.id ? (
+            <Link to={`/profile/${person.id}`} style={{ fontWeight: 500, fontSize: 14, color: 'var(--text, #1a1a18)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+              {person.full_name}
+              <span style={{ fontSize: 11, color: 'var(--text-3, #888)' }}>→</span>
+            </Link>
+          ) : (
+            <div style={{ fontWeight: 500, fontSize: 14 }}>{person.full_name}</div>
+          )}
 
           {showPhone && person.phone && (
             <a href={`tel:${person.phone}`} style={{ fontSize: 13, color: 'var(--green, #0F6E56)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
