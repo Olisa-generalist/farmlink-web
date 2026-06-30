@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'buyer' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'buyer' })
 
   function set(field) { return e => setForm(f => ({ ...f, [field]: e.target.value })) }
 
@@ -50,7 +50,7 @@ export default function RegisterPage() {
     if (data?.user?.id) {
       await supabase.from('users').upsert({
         id: data.user.id, full_name: form.name,
-        email: form.email, role: form.role,
+        email: form.email, phone: form.phone, role: form.role,
       })
       if (form.role === 'farmer' || form.role === 'provider') {
         await supabase.from('wallets').upsert({ user_id: data.user.id, balance: 0 })
@@ -165,6 +165,10 @@ export default function RegisterPage() {
         <div className="input-group">
           <label>Email address</label>
           <input type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} required />
+        </div>
+        <div className="input-group">
+          <label>Phone number *</label>
+          <input type="tel" placeholder="08012345678" value={form.phone} onChange={set('phone')} required />
         </div>
         <div className="input-group">
           <label>Password</label>

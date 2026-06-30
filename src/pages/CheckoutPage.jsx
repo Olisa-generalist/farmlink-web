@@ -12,6 +12,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
+import { notifyOrderPaid } from '../lib/notifications'
 
 const PLATFORM_FEE_PERCENT = 5
 
@@ -83,6 +84,9 @@ export default function CheckoutPage() {
         .from('order_legs')
         .update({ status: 'paid_held' })
         .eq('order_id', orderId)
+
+      // Notify farmer and/or logistics provider that they have a new paid order
+      await notifyOrderPaid(orderId)
 
       toast.success('Payment successful! Order confirmed.')
       navigate(`/orders/${orderId}`)

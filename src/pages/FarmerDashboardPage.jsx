@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
+import { notifyBuyerOfLegUpdate } from '../lib/notifications'
 
 export default function FarmerDashboardPage() {
   const { user, profile } = useAuth()
@@ -70,9 +71,15 @@ export default function FarmerDashboardPage() {
   }
 
   async function dispatchOrder(legId) {
+    const leg = orders.find(o => o.id === legId)
     const { error } = await supabase
       .from('order_legs').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', legId)
     if (error) { toast.error('Could not update order'); return }
+
+    // Get order_id for this leg to notify buyer
+    const { data: legData } = await supabase.from('order_legs').select('order_id').eq('id', legId).single()
+    if (legData) await notifyBuyerOfLegUpdate(legData.order_id, 'product', 'in_progress')
+
     toast.success('Order marked as dispatched! Buyer has been notified.')
     fetchOrders()
   }
@@ -81,6 +88,10 @@ export default function FarmerDashboardPage() {
     const { error } = await supabase
       .from('order_legs').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', legId)
     if (error) { toast.error('Could not confirm order'); return }
+
+    const { data: legData } = await supabase.from('order_legs').select('order_id').eq('id', legId).single()
+    if (legData) await notifyBuyerOfLegUpdate(legData.order_id, 'product', 'confirmed')
+
     toast.success('Order confirmed!')
     fetchOrders()
   }

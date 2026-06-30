@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
+import { notifyBuyerOfLegUpdate } from '../lib/notifications'
 
 export default function ProviderDashboardPage() {
   const { user, profile } = useAuth()
@@ -63,6 +64,10 @@ export default function ProviderDashboardPage() {
     const { error } = await supabase
       .from('order_legs').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', legId)
     if (error) { toast.error('Could not confirm job'); return }
+
+    const { data: legData } = await supabase.from('order_legs').select('order_id').eq('id', legId).single()
+    if (legData) await notifyBuyerOfLegUpdate(legData.order_id, 'logistics', 'confirmed')
+
     toast.success('Job confirmed! Get ready for pickup.')
     fetchOrders()
   }
@@ -71,6 +76,10 @@ export default function ProviderDashboardPage() {
     const { error } = await supabase
       .from('order_legs').update({ status: 'in_progress', started_at: new Date().toISOString() }).eq('id', legId)
     if (error) { toast.error('Could not update job'); return }
+
+    const { data: legData } = await supabase.from('order_legs').select('order_id').eq('id', legId).single()
+    if (legData) await notifyBuyerOfLegUpdate(legData.order_id, 'logistics', 'in_progress')
+
     toast.success('Job started! Buyer has been notified you are en route.')
     fetchOrders()
   }

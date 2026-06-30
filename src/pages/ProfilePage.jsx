@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const { profile, signOut, refreshProfile } = useAuth()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(profile?.full_name || '')
+  const [phone, setPhone] = useState(profile?.phone || '')
   const [loading, setLoading] = useState(false)
 
   const role = profile?.role || 'buyer'
@@ -19,9 +20,9 @@ export default function ProfilePage() {
     if (!name.trim()) return
     setLoading(true)
     const { error } = await supabase
-      .from('users').update({ full_name: name.trim() }).eq('id', profile.id)
-    if (error) { toast.error('Could not update name') }
-    else { toast.success('Name updated!'); await refreshProfile(); setEditing(false) }
+      .from('users').update({ full_name: name.trim(), phone: phone.trim() }).eq('id', profile.id)
+    if (error) { toast.error('Could not update profile') }
+    else { toast.success('Profile updated!'); await refreshProfile(); setEditing(false) }
     setLoading(false)
   }
 
@@ -82,6 +83,10 @@ export default function ProfilePage() {
                   <label>Full name</label>
                   <input value={name} onChange={e => setName(e.target.value)} autoFocus required />
                 </div>
+                <div className="input-group">
+                  <label>Phone number</label>
+                  <input type="tel" placeholder="08012345678" value={phone} onChange={e => setPhone(e.target.value)} />
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
                   <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setEditing(false)}>Cancel</button>
@@ -97,9 +102,15 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div style={{ paddingTop: 10 }}>
+            <div style={{ paddingTop: 10, paddingBottom: 10, borderBottom: '0.5px solid var(--border)' }}>
               <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Email</div>
               <div style={{ fontSize: 14, marginTop: 2 }}>{profile?.email || 'Not set'}</div>
+            </div>
+            <div style={{ paddingTop: 10 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Phone number</div>
+              <div style={{ fontSize: 14, marginTop: 2 }}>
+                {profile?.phone || <span style={{ color: 'var(--red)' }}>Not set — add this so buyers/farmers/providers can reach you</span>}
+              </div>
             </div>
           </div>
         </div>
