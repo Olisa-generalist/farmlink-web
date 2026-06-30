@@ -1,6 +1,6 @@
 // src/pages/ProductDetailPage.jsx
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import toast from 'react-hot-toast'
@@ -113,7 +113,12 @@ export default function ProductDetailPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: 14, marginBottom: 4 }}>
             <div>
               <h2 style={{ fontSize: 20 }}>{product.name}</h2>
-              <p style={{ fontSize: 12, marginTop: 2 }}>{farmer?.full_name} · {product.state || 'Nigeria'}</p>
+              <p style={{ fontSize: 12, marginTop: 2 }}>
+                <Link to={`/profile/${farmer?.id}`} style={{ color: 'var(--green)', textDecoration: 'none', fontWeight: 500 }}>
+                  {farmer?.full_name}
+                </Link>
+                {' · '}{product.state || 'Nigeria'}
+              </p>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--green)' }}>

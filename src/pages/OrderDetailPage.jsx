@@ -33,13 +33,8 @@ export default function OrderDetailPage() {
   async function fetchOrder() {
     setLoading(true)
 
-    // STEP 1: Get the order itself
     const { data: orderData } = await supabase.from('orders').select('*').eq('id', id).single()
 
-    // STEP 2: Get raw legs — no nested joins, same pattern as the
-    // dashboards. Nested joins through multiple foreign keys can
-    // silently return null for the joined data even when RLS allows
-    // the underlying rows, so we fetch and stitch manually.
     const { data: rawLegs, error: legsError } = await supabase
       .from('order_legs')
       .select('*')
@@ -50,27 +45,25 @@ export default function OrderDetailPage() {
 
     let enrichedLegs = []
     if (rawLegs && rawLegs.length > 0) {
-      // STEP 3: Fetch products for product legs
+      // Product details — name, photos, unit
       const productIds = [...new Set(rawLegs.map(l => l.product_id).filter(Boolean))]
       const { data: products } = productIds.length
-        ? await supabase.from('products').select('id, name, unit, photos').in('id', productIds)
+        ? await supabase.from('products').select('id, name, unit, photos, description').in('id', productIds)
         : { data: [] }
 
-      // STEP 4: Fetch logistics services for logistics legs
+      // Logistics service details
       const serviceIds = [...new Set(rawLegs.map(l => l.logistics_service_id).filter(Boolean))]
       const { data: services } = serviceIds.length
         ? await supabase.from('logistics_services').select('id, name, vehicle_type, photos').in('id', serviceIds)
         : { data: [] }
 
-      // STEP 5: Fetch provider (farmer or 3PL) contact info for every leg
+      // Provider contact info (farmer or 3PL)
       const providerIds = [...new Set(rawLegs.map(l => l.provider_id).filter(Boolean))]
       const { data: providers, error: providersError } = providerIds.length
         ? await supabase.from('users').select('id, full_name, phone, profile_photo').in('id', providerIds)
         : { data: [] }
-
       if (providersError) console.error('Fetch providers error:', providersError)
 
-      // STEP 6: Stitch it all together
       enrichedLegs = rawLegs.map(leg => {
         const product = products?.find(p => p.id === leg.product_id)
         const service = services?.find(s => s.id === leg.logistics_service_id)
@@ -84,7 +77,7 @@ export default function OrderDetailPage() {
       })
     }
 
-    // STEP 7: Buyer info (for provider view)
+    // Buyer info
     let buyerInfo = null
     if (orderData) {
       const { data: buyer } = await supabase
@@ -186,7 +179,34 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* ── Contact cards — privacy-aware ── */}
+        {/* ── PRODUCT DETAILS — shown to everyone ── */}
+        {productLeg?.products && (
+          <>
+            <div className="section-label">Product</div>
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-body" style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', flexShrink: 0, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>
+                  {productLeg.products.photos?.[0]
+                    ? <img src={productLeg.products.photos[0]} alt={productLeg.products.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : '📦'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: 15 }}>{productLeg.products.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 2 }}>
+                    {productLeg.quantity} {productLeg.products.unit} · ₦{Number(productLeg.unit_price).toLocaleString()}/{productLeg.products.unit}
+                  </div>
+                  {order.notes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 6, background: 'var(--surface-2)', borderRadius: 6, padding: '6px 8px' }}>
+                      📝 Buyer note: {order.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Contact cards — privacy-aware, with correct addresses ── */}
         <div className="section-label">Who's involved</div>
 
         {/* Buyer sees: provider contact, farmer name+location only */}
@@ -197,7 +217,7 @@ export default function OrderDetailPage() {
                 vehiclePhoto={logisticsLeg.logistics_services?.photos?.[0]} />
             )}
             {productLeg?.provider && (
-              <ContactCard viewerRole="buyer" type="farmer" person={{ full_name: productLeg.provider.full_name, state: order.delivery_state }} />
+              <ContactCard viewerRole="buyer" type="farmer" person={{ full_name: productLeg.provider.full_name, state: order.pickup_state }} />
             )}
           </>
         )}
@@ -213,14 +233,16 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* Provider sees: full farmer + buyer contact */}
+        {/* Provider sees: full farmer + buyer contact — CORRECT addresses now */}
         {viewerRole === 'provider' && (
           <>
             {productLeg?.provider && (
-              <ContactCard viewerRole="provider" type="farmer" person={{ ...productLeg.provider, address: order.delivery_address }} />
+              <ContactCard viewerRole="provider" type="farmer"
+                person={{ ...productLeg.provider, address: order.pickup_address || order.pickup_state || 'Pickup address not specified' }} />
             )}
             {order.buyerInfo && (
-              <ContactCard viewerRole="provider" type="buyer" person={{ ...order.buyerInfo, address: order.delivery_address }} />
+              <ContactCard viewerRole="provider" type="buyer"
+                person={{ ...order.buyerInfo, address: order.delivery_address || order.delivery_state || 'Delivery address not specified' }} />
             )}
           </>
         )}
@@ -288,7 +310,6 @@ export default function OrderDetailPage() {
           )
         })}
 
-        {/* Review prompt */}
         {order.status === 'completed' && isBuyer && (
           <div style={{ background: 'var(--green-light)', borderRadius: 12, padding: '14px 16px', marginTop: 8, textAlign: 'center' }}>
             <div style={{ fontSize: 22, marginBottom: 6 }}>⭐</div>
