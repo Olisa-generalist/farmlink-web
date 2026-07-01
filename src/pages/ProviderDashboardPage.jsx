@@ -243,7 +243,7 @@ export default function ProviderDashboardPage() {
 
       <div className="page-content">
         <div style={{ marginTop: 16 }} className="stat-grid">
-          <div className="stat-card"><div className="stat-label">Wallet balance</div><div className="stat-value green">₦{Number(stats.balance).toLocaleString()}</div></div>
+          <div className="stat-card" onClick={() => navigate('/wallet')} style={{ cursor: 'pointer' }}><div className="stat-label">Wallet balance →</div><div className="stat-value green">₦{Number(stats.balance).toLocaleString()}</div></div>
           <div className="stat-card"><div className="stat-label">In escrow</div><div className="stat-value">₦{Number(stats.escrow).toLocaleString()}</div></div>
           <div className="stat-card"><div className="stat-label">Total earned</div><div className="stat-value">₦{Number(stats.earned).toLocaleString()}</div></div>
           <div className="stat-card"><div className="stat-label">Jobs completed</div><div className="stat-value">{stats.completed}</div></div>

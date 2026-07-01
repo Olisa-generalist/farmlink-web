@@ -151,6 +151,7 @@ export default function ProfilePage() {
               {[
                 { to: '/dashboard', icon: '📊', label: 'My dashboard & orders' },
                 { to: '/add-product', icon: '➕', label: 'Add new product' },
+                { to: '/wallet', icon: '💰', label: 'Wallet & earnings' },
                 { to: '/', icon: '🛒', label: 'Browse marketplace as buyer' },
               ].map((item, i, arr) => (
                 <Link key={item.to + item.label} to={item.to} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '9px 0', borderBottom: i < arr.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
@@ -170,6 +171,7 @@ export default function ProfilePage() {
               {[
                 { to: '/dashboard', icon: '📊', label: 'My dashboard & jobs' },
                 { to: '/add-service', icon: '➕', label: 'Add new service' },
+                { to: '/wallet', icon: '💰', label: 'Wallet & earnings' },
                 { to: '/', icon: '🛒', label: 'Browse marketplace as buyer' },
               ].map((item, i, arr) => (
                 <Link key={item.to + item.label} to={item.to} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', padding: '9px 0', borderBottom: i < arr.length - 1 ? '0.5px solid var(--border)' : 'none' }}>
