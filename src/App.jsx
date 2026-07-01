@@ -15,6 +15,7 @@ import OrderDetailPage from './pages/OrderDetailPage'
 import ReviewPage from './pages/ReviewPage'
 import ProfilePage from './pages/ProfilePage'
 import PublicProfilePage from './pages/PublicProfilePage'
+import WalletPage from './pages/WalletPage'
 import FarmerDashboardPage from './pages/FarmerDashboardPage'
 import AddProductPage from './pages/AddProductPage'
 import ProviderDashboardPage from './pages/ProviderDashboardPage'
@@ -67,6 +68,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="/add-product" element={<ProtectedRoute><AddProductPage /></ProtectedRoute>} />
+        <Route path="/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
 
         {/* Logistics */}
         <Route path="/add-service" element={<ProtectedRoute><AddServicePage /></ProtectedRoute>} />
